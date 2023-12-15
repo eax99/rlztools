@@ -145,6 +145,29 @@ I've included manual pages for these programs in the `man/` directory.
 The manuals have been written with the [mdoc language](https://mandoc.bsd.lv/).
 Because Linux distributions typically don't come with the mandoc program that compiles the mdoc language, I have also included in that directory pre-compiled versions that should be compatible with the default `man` program, for convenience.
 
+## Bugs
+
+As of the first publicly-released version in December 2023, tagged "0.9.0" on GitHub, I am confident that the RLZ parsings produced by `rlzparse` are correct, and that `rlzparse` is free of serious data-corrupting bugs.
+I am confident that the decompression done by `rlzunparse` is also correct when used in the default 8-bit mode, and when *not* using the `-a` or `-b` options: decompression of an entire file should always work.
+I am quite confident (like, "98% confident": I've tried a bunch of inputs, but I haven't tested every edge case I can think of) that `rlzunparse` also works as intended in 16, 32 and 64-bit mode when *not* using the `-a` or `-b` options.
+
+I'm less confident in the combination of the `-a`/`-b` options (that is, partial decompression) and the `-w 16`/`-w 32`/`-w 64` modes.
+Partial decompression has been a late addition, and while it looks correct at first glance with sensible inputs and 8-bit data, I can't guarantee that there aren't some off-by-one errors in there, or that it doesn't fail with weirder inputs or edge cases.
+I do not suggest using partial decompression at all with the wide-symbol modes at this time: this hasn't been tested much, and I remember that the partial decompression index-calculating code has some errors with it when symbols get wide.
+
+### "Error: failed binary search"
+
+This is probably not a bug, but rather due to your suffix array being faulty and not matching the dictionary. This is especially common when trying wide-symbol compression and the wide-symbol suffix array wasn't constructed quite right, or when the wrong suffix array is used for another dictionary, or you forgot to tell `rlzparse` you're dealing with wide-symbol data with the `-w 16/32/64` options.
+
+This error occurs when, during the string-searching loop, the compressor's binary searcher encounters a situation where the data referenced by the suffix array is out of order.
+More specifically: the routines require that _t_\[_s_\[i\]\] ≤ _t_\[_s_\[i+1\]\] ≤ _t_\[_s_\[i+2\]\] ≤ ... (where _t_ is the input text and _s_ is the suffix array), but it detected that _t_\[_s_\[i\]\] > _t_\[_s_\[i+1\]\].
+There is no way for the algorithm to recover from this situation, so it complains and then terminates the program.
+
+### "Error (bug): outside token-finding loop"
+
+This is more likely to be a bug. I don't know if it can still happen, but during development this came up when one part of the program's state thought there was no more data to compress while another part was still expecting more.
+You might still see this if your file stops existing mid-compression, or something.
+
 ## The RLZ algorithm
 
 With a general, decently compressible human-written text, RLZ typically attains compression ratios on par with `gzip`, but with particular inputs – such as the concatenation of the full text of every version of a Wikipedia article – it can compress far more than `xz` can.
