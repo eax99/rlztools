@@ -168,6 +168,18 @@ There is no way for the algorithm to recover from this situation, so it complain
 This is more likely to be a bug. I don't know if it can still happen, but during development this came up when one part of the program's state thought there was no more data to compress while another part was still expecting more.
 You might still see this if your file stops existing mid-compression, or something.
 
+### builddict never terminates
+
+This is due to the non-deterministic algorithm it uses. Kill it, then try decreasing the `-n` or the `-l` parameters, or both, until it starts working again. You shouldn't wait more than a few seconds to see the "generated _n×l_ samples" message.
+
+Why it stops working is a very interesting question from a computer science lens. I don't have the probabilistic math on hand to explain why or how, but it exhibits a phase transition-like behavior, where very small adjustments to either `-n` or `-l` cause it to jam up. When this happens, it's unlikely to ever fix itself.
+The algorithm works by generating a set of `-n` random points in the range of 0 to the length of the dictionary, sorting them, and then checking if any of them overlap (which they do if they're less than `-l` symbols from each other).
+If there are overlaps, the program deletes both from the list and generates new ones. It keeps going in a loop until it has its `-n` sampling points, all at least `-l` symbols away from each other.
+Most of the time that loop fixes a few overlaps and then terminates. Even with very large `-n`s, it may only have to fix each overlap once; the samples are still sparse.
+However, if `-n` and `-l` are too large, then this loop very suddenly becomes unlikely to ever terminate: the samples are just too densely packed together. The interesting part is with how close "sparse enough" and "too dense" are to each other; I've found cases where increasing either parameter by just one is enough.
+
+But in any case: yes, this is a known bug. I might fix it at some point by changing the algorithm entirely (this has some pitfalls – we can uniformly sample the input, but then it will be more uniformly sampled and less random, but maybe that's what desired), or detecting getting stuck and then changing the algorithm, but as it is now the program can indeed never terminate with some parameters.
+
 ## The RLZ algorithm
 
 With a general, decently compressible human-written text, RLZ typically attains compression ratios on par with `gzip`, but with particular inputs – such as the concatenation of the full text of every version of a Wikipedia article – it can compress far more than `xz` can.
