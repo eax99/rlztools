@@ -1,0 +1,252 @@
+.\" Examining OpenBSD's mandoc pages on ls and gzip have been informative:
+.\" https://github.com/openbsd/src/blob/master/bin/ls/ls.1
+.\" https://github.com/openbsd/src/blob/master/usr.bin/compress/gzip.1
+.\" It took a while to find the good documentation page for the mdoc format;
+.\" this is the one: https://mandoc.bsd.lv/man/mdoc.7.html
+.Dd December 14, 2023
+.Dt RLZPARSE 1
+.Os
+.Sh NAME
+.Nm rlzparse ,
+.Nm rlzunparse
+.Nd compress and decompress against a dictionary with the RLZ algorithm
+.\"
+.\"
+.Sh SYNOPSIS
+.Nm rlzparse
+.Op Fl Fl help
+.Op Fl q
+.Op Fl Fl progress
+.Op Fl w Cm 8 | 16 | 32 | 64
+.Op Fl W Cm 32 | 64
+.Fl i Ar input-file
+.Fl d Ar dictionary
+.Fl s Ar suffix-array
+.Op Fl f Cm 32x2 | 64x2 | ascii | vbyte
+.Op Fl o Ar output-file
+.Nm rlzunparse
+.Op Fl Fl help
+.Op Fl q
+.Op Fl w Cm 8 | 16 | 32 | 64
+.Fl d Ar dictionary
+.Op Fl f Cm 32x2 | 64x2 | ascii | vbyte
+.Fl i Ar rlz-file
+.Op Fl a Ar from-index
+.Op Fl b Ar to-index
+.Fl o Ar output-file
+.\"
+.\"
+.Sh DESCRIPTION
+The
+.Nm rlzparse
+program compresses an input file against a dictionary, using the
+Relative Lempel-Ziv (RLZ) algorithm.
+The dictionary may be built in various ways, for example with the
+.Xr builddict 1
+program that comes as a part of rlztools.
+(See section
+.Sx Dictionary\ generation
+for a quick discussion on dictionary generation.)
+.Nm rlzparse
+also needs the precomputed suffix array of the dictionary; see section
+.Sx Suffix\ array\ computation
+for pointers on how to do that.
+.Pp
+The
+.Nm rlzunparse
+program uncompresses files compressed with
+.Nm rlzparse .
+The same dictionary that was used for compression must also be used for
+decompression, otherwise the output is garbage.
+The suffix array is not required for decompression.
+.Pp
+By default,
+.Nm rlzparse
+writes its output into a file with the name of the input plus the extension
+".rlz", but the output file can be named explicitly with
+.Fl o Ar output-file .
+Giving the output file an ".rlz" extension is recommended.
+.Pp
+Options can be given in any order.
+All single-character short options also have a long name alias.
+The options are as follows:
+.\"
+.\"	BEGIN OPTIONS LIST
+.\"
+.Bl -tag -width Ds
+.It Fl a Ar from-index , Fl Fl from Ar from-index
+.Nm rlzunparse
+only.
+Start decompression at the symbol at index
+.Ar from-index .
+Indices refer to positions in the original, uncompressed file. 
+The first character has an index of 1.
+Both
+.Fl a
+and
+.Fl b
+indices are inclusive:
+giving both the same argument produces a 1-symbol output file.
+Specifying an index of 0 is the same as not specifying this option at all:
+compression starts at the beginning of the file.
+.It Fl b Ar to-index , Fl Fl to Ar to-index
+Stop decompression at the symbol at index
+.Ar to-index .
+Indices are 1-based and inclusive.
+Specifying an index of 0 is the same as not specifying this option at all:
+compression continues to the end of the file.
+.It Fl d Ar dictionary , Fl Fl dictionary Ar dictionary
+Specifies the filename of the dictionary. Mandatory for both
+.Nm rlzparse
+and
+.Nm rlzunparse .
+.It Fl f Cm 32x2 | 64x2 | ascii | vbyte
+Specifies the binary format of the RLZ output.
+"32x2" and "64x2" both consist of fixed-width little-endian integers,
+"ascii" is a textual format useful mainly for debugging or satisfying curiosity,
+and "vbyte" is typically the most efficient format, having a variable number
+of bytes per integer.
+.It Fl Fl help
+Prints out a help message, listing a summary of options.
+.It Fl i Ar input-file , Fl Fl infile Ar input-file
+Specifies the file to be compressed or decompressed.
+.It Fl Fl input-fmt Cm 32x2 | 64x2 | ascii | vbyte
+An alias of
+.Fl f
+in
+.Nm rlzunparse .
+.It Fl o Ar output-file , Fl Fl outfile Ar output-file
+Specifies the name of the output file (compressed RLZ file in
+.Nm rlzparse ,
+uncompressed file in
+.Nm rlzunparse Ns ).
+Mandatory in
+.Nm rlzunparse .
+Optional in
+.Nm rlzparse ;
+if left unspecified, the output will have the name of the input plus the
+suffix ".rlz".
+.It Fl Fl output-fmt Cm 32x2 | 64x2 | ascii | vbyte
+An alias of
+.Fl f
+in
+.Nm rlzparse .
+.It Fl Fl progress
+.Nm rlzparse
+only.
+Periodically prints out a message on compression progress and speed.
+.It Fl q , Fl Fl quiet
+Don't print any messages on stderr in normal operation.
+In error cases an error message will still be printed.
+Overrides
+.Fl Fl progress .
+.It Fl s Ar suffix-array , Fl Fl suffix-array Ar suffix-array
+Specifies the suffix array's filename.
+Mandatory for
+.Nm rlzparse .
+Unnecessary (and missing) in
+.Nm rlzunparse .
+.It Fl W Cm 32 | 64 , Fl Fl sa-width Cm 32 | 64
+.Nm rlzparse
+only.
+Sets the symbol width of suffix array elements.
+The default is "32" \(em that is, 32 bits per integer, unsigned, little-endian.
+"64" is only necessary for dictionaries larger than 2^32\-1 elements.
+.It Fl w Cm 8 | 16 | 32 | 64 , Fl Fl width Cm 8 | 16 | 32 | 64
+Sets the symbol width of the uncompressed file and the dictionary.
+See
+.Sx Symbol\ width
+for the implications of this.
+.El
+.\"
+.\"	END OPTIONS LIST
+.\"
+.Ss Dictionary\ generation
+Dictionary generation is a large topic in and of itself.
+Depending on what the input data "looks like", various schemes may work.
+If the input consists of a concatenated collection of a number of
+largely-similar documents, a few of those documents may work.
+For less-structured files, random sampling may be used; the
+.Xr builddict 1
+program, supplied as a part of the rlztools, can be used for this.
+.Pp
+Parameterizing the random sampler is a complex topic, but a few rules of thumb
+are: don't make the sample length too short (a kilobyte/kilosymbol or few is
+a good starting point), and a slightly too large dictionary is better than
+a slightly too small one.
+(Doubling the dictionary's size might not halve the compressed output's length,
+but halving the dictionary's size is likely to make the compressed output
+more than double in length.)
+A dictionary between 1% and 10% of the uncompressed file's size is likely to
+work quite well, and is a reasonable starting point.
+.\"
+.Ss Suffix\ array\ computation
+Suffix arrays must be computed by an external tool \(em suffix array computation
+is not yet implemented in
+.Nm rlzparse
+itself, and even if implemented, is likely to not be as fast as other tools.
+We have used the "gensa" program, part of "libdivsufsort" by Yuta Mori
+.Pq Lk https://github.com/y-256/libdivsufsort ,
+for suffix array calculation; it has proven to be fast and efficient for
+dictionaries up to at least a few hundred megabytes in size.
+.Pp
+Computing suffix arrays for wide-symbol data, in a way that will work with the
+.Fl w
+option, is not directly trivial, but is doable with a few utility tools
+(and plenty of scratch space available on your disk).
+These tools are included as part of the rlztools suite;
+we refer you to the manual of
+.Xr rlztools.divsuffix 1
+for examples on how to carry out the computation.
+.\"
+.Ss Symbol\ width
+By default, both utilities assume that the RLZ-compressed output or input is
+in the "32x2" binary format, which uses a constant eight bytes per RLZ phrase.
+Most real-world inputs will compress into a 30\(em60% smaller space
+if compressed with the "vbyte" binary format, which varies the number of bytes
+per phrase as needed.
+If very large dictionaries bigger than 4\~GiB are used, this is no longer
+sufficient, and either the "vbyte" or "64x2" binary formats must be used.
+The choice of RLZ binary format is specified with the
+.Fl f
+option.
+Take care to give
+.Nm rlzunparse
+the same
+.Fl f
+option as was used for compression; otherwise the program will probably crash,
+or at the very least your output will be garbage.
+.Pp
+By default, these tools assume that the original uncompressed file
+(and the dictionary) are composed of 8-bit bytes.
+This is fine for all inputs, but in some situations the input (and dictionary)
+are in fact composed of wider units, like 32-bit (4-byte) fixed-width integers.
+Both tools support interpreting the file as a sequence of these wider symbols:
+the
+.Fl w
+option specifies the symbol width of both the dictionary and the input
+.Pq Nm rlzparse
+or output
+.Pq Nm rlzunparse .
+This changes the interpretation of the
+.Fl a
+and
+.Fl b
+options, and the requirements of the suffix array.
+.Pp
+For example, with
+.Qq Fl w Cm 32
+set, the elements of the suffix array point to 32-bit symbols rather than
+individual bytes, and thus one can use 32-bit-wide suffix arrays with
+dictionaries as large as 16~GiB (2^32\-1 32-bit symbols).
+Again with
+.Qq Fl w Cm 32
+set, giving
+.Nm rlzunparse
+the parameters
+.Qq Fl a 3000 Fl b 3500
+will result in a 2004-byte file (2004 bytes = 501 32-bit/4-byte symbols),
+which starts at the 3000th symbol (i.e. the 12,000th byte)
+in the original, uncompressed input file.
+.Sh AUTHORS
+.An Eve Kivivuori Pq Lk https://github.com/eax99/

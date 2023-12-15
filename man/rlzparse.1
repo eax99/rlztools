@@ -1,0 +1,257 @@
+.\" Automatically generated from an mdoc input file.  Do not edit.
+.\" Examining OpenBSD's mandoc pages on ls and gzip have been informative:
+.\" https://github.com/openbsd/src/blob/master/bin/ls/ls.1
+.\" https://github.com/openbsd/src/blob/master/usr.bin/compress/gzip.1
+.\" It took a while to find the good documentation page for the mdoc format;
+.\" this is the one: https://mandoc.bsd.lv/man/mdoc.7.html
+.TH "RLZPARSE" "1" "December 14, 2023" "Linux 6.6.6-arch1-1" "General Commands Manual"
+.nh
+.if n .ad l
+.SH "NAME"
+\fBrlzparse\fR,
+\fBrlzunparse\fR
+\- compress and decompress against a dictionary with the RLZ algorithm
+.SH "SYNOPSIS"
+.HP 9n
+\fBrlzparse\fR
+[\fB\-\-help\fR]
+[\fB\-q\fR]
+[\fB\-\-progress\fR]
+[\fB\-w\fR\ \fB8\fR\ |\ \fB16\fR\ |\ \fB32\fR\ |\ \fB64\fR]
+[\fB\-W\fR\ \fB32\fR\ |\ \fB64\fR]
+\fB\-i\fR\ \fIinput-file\fR
+\fB\-d\fR\ \fIdictionary\fR
+\fB\-s\fR\ \fIsuffix-array\fR
+[\fB\-f\fR\ \fB32x2\fR\ |\ \fB64x2\fR\ |\ \fBascii\fR\ |\ \fBvbyte\fR]
+[\fB\-o\fR\ \fIoutput-file\fR]
+.br
+.PD 0
+.HP 11n
+\fBrlzunparse\fR
+[\fB\-\-help\fR]
+[\fB\-q\fR]
+[\fB\-w\fR\ \fB8\fR\ |\ \fB16\fR\ |\ \fB32\fR\ |\ \fB64\fR]
+\fB\-d\fR\ \fIdictionary\fR
+[\fB\-f\fR\ \fB32x2\fR\ |\ \fB64x2\fR\ |\ \fBascii\fR\ |\ \fBvbyte\fR]
+\fB\-i\fR\ \fIrlz-file\fR
+[\fB\-a\fR\ \fIfrom-index\fR]
+[\fB\-b\fR\ \fIto-index\fR]
+\fB\-o\fR\ \fIoutput-file\fR
+.PD
+.SH "DESCRIPTION"
+The
+\fBrlzparse\fR
+program compresses an input file against a dictionary, using the
+Relative Lempel-Ziv (RLZ) algorithm.
+The dictionary may be built in various ways, for example with the
+builddict(1)
+program that comes as a part of rlztools.
+(See section
+\fIDictionary\ generation\fR
+for a quick discussion on dictionary generation.)
+\fBrlzparse\fR
+also needs the precomputed suffix array of the dictionary; see section
+\fISuffix\ array\ computation\fR
+for pointers on how to do that.
+.PP
+The
+\fBrlzunparse\fR
+program uncompresses files compressed with
+\fBrlzparse\fR.
+The same dictionary that was used for compression must also be used for
+decompression, otherwise the output is garbage.
+The suffix array is not required for decompression.
+.PP
+By default,
+\fBrlzparse\fR
+writes its output into a file with the name of the input plus the extension
+".rlz", but the output file can be named explicitly with
+\fB\-o\fR \fIoutput-file\fR.
+Giving the output file an ".rlz" extension is recommended.
+.PP
+Options can be given in any order.
+All single-character short options also have a long name alias.
+The options are as follows:
+.TP 8n
+\fB\-a\fR \fIfrom-index\fR, \fB\-\-from\fR \fIfrom-index\fR
+\fBrlzunparse\fR
+only.
+Start decompression at the symbol at index
+\fIfrom-index\fR.
+Indices refer to positions in the original, uncompressed file.
+The first character has an index of 1.
+Both
+\fB\-a\fR
+and
+\fB\-b\fR
+indices are inclusive:
+giving both the same argument produces a 1-symbol output file.
+Specifying an index of 0 is the same as not specifying this option at all:
+compression starts at the beginning of the file.
+.TP 8n
+\fB\-b\fR \fIto-index\fR, \fB\-\-to\fR \fIto-index\fR
+Stop decompression at the symbol at index
+\fIto-index\fR.
+Indices are 1-based and inclusive.
+Specifying an index of 0 is the same as not specifying this option at all:
+compression continues to the end of the file.
+.TP 8n
+\fB\-d\fR \fIdictionary\fR, \fB\-\-dictionary\fR \fIdictionary\fR
+Specifies the filename of the dictionary. Mandatory for both
+\fBrlzparse\fR
+and
+\fBrlzunparse\fR.
+.TP 8n
+\fB\-f\fR \fB32x2\fR | \fB64x2\fR | \fBascii\fR | \fBvbyte\fR
+Specifies the binary format of the RLZ output.
+"32x2" and "64x2" both consist of fixed-width little-endian integers,
+"ascii" is a textual format useful mainly for debugging or satisfying curiosity,
+and "vbyte" is typically the most efficient format, having a variable number
+of bytes per integer.
+.TP 8n
+\fB\-\-help\fR
+Prints out a help message, listing a summary of options.
+.TP 8n
+\fB\-i\fR \fIinput-file\fR, \fB\-\-infile\fR \fIinput-file\fR
+Specifies the file to be compressed or decompressed.
+.TP 8n
+\fB\-\-input-fmt\fR \fB32x2\fR | \fB64x2\fR | \fBascii\fR | \fBvbyte\fR
+An alias of
+\fB\-f\fR
+in
+\fBrlzunparse\fR.
+.TP 8n
+\fB\-o\fR \fIoutput-file\fR, \fB\-\-outfile\fR \fIoutput-file\fR
+Specifies the name of the output file (compressed RLZ file in
+\fBrlzparse\fR,
+uncompressed file in
+\fBrlzunparse\fR).
+Mandatory in
+\fBrlzunparse\fR.
+Optional in
+\fBrlzparse\fR;
+if left unspecified, the output will have the name of the input plus the
+suffix ".rlz".
+.TP 8n
+\fB\-\-output-fmt\fR \fB32x2\fR | \fB64x2\fR | \fBascii\fR | \fBvbyte\fR
+An alias of
+\fB\-f\fR
+in
+\fBrlzparse\fR.
+.TP 8n
+\fB\-\-progress\fR
+\fBrlzparse\fR
+only.
+Periodically prints out a message on compression progress and speed.
+.TP 8n
+\fB\-q\fR, \fB\-\-quiet\fR
+Don't print any messages on stderr in normal operation.
+In error cases an error message will still be printed.
+Overrides \fB\-\-progress\fR.
+.TP 8n
+\fB\-s\fR \fIsuffix-array\fR, \fB\-\-suffix-array\fR \fIsuffix-array\fR
+Specifies the suffix array's filename.
+Mandatory for
+\fBrlzparse\fR.
+Unnecessary (and missing) in
+\fBrlzunparse\fR.
+.TP 8n
+\fB\-W\fR \fB32\fR | \fB64\fR, \fB\-\-sa-width\fR \fB32\fR | \fB64\fR
+\fBrlzparse\fR
+only.
+Sets the symbol width of suffix array elements.
+The default is "32" \(em that is, 32 bits per integer, unsigned, little-endian.
+"64" is only necessary for dictionaries larger than 2^32\-1 elements.
+.TP 8n
+\fB\-w\fR \fB8\fR | \fB16\fR | \fB32\fR | \fB64\fR, \fB\-\-width\fR \fB8\fR | \fB16\fR | \fB32\fR | \fB64\fR
+Sets the symbol width of the uncompressed file and the dictionary.
+See
+\fISymbol\ width\fR
+for the implications of this.
+.SS "Dictionary\ generation"
+Dictionary generation is a large topic in and of itself.
+Depending on what the input data "looks like", various schemes may work.
+If the input consists of a concatenated collection of a number of
+largely-similar documents, a few of those documents may work.
+For less-structured files, random sampling may be used; the
+builddict(1)
+program, supplied as a part of the rlztools, can be used for this.
+.PP
+Parameterizing the random sampler is a complex topic, but a few rules of thumb
+are: don't make the sample length too short (a kilobyte/kilosymbol or few is
+a good starting point), and a slightly too large dictionary is better than
+a slightly too small one.
+(Doubling the dictionary's size might not halve the compressed output's length,
+but halving the dictionary's size is likely to make the compressed output
+more than double in length.)
+A dictionary between 1% and 10% of the uncompressed file's size is likely to
+work quite well, and is a reasonable starting point.
+.SS "Suffix\ array\ computation"
+Suffix arrays must be computed by an external tool \(em suffix array computation
+is not yet implemented in
+\fBrlzparse\fR
+itself, and even if implemented, is likely to not be as fast as other tools.
+We have used the "gensa" program, part of "libdivsufsort" by Yuta Mori
+(\fBhttps://github.com/y-256/libdivsufsort\fR),
+for suffix array calculation; it has proven to be fast and efficient for
+dictionaries up to at least a few hundred megabytes in size.
+.PP
+Computing suffix arrays for wide-symbol data, in a way that will work with the
+\fB\-w\fR
+option, is not directly trivial, but is doable with a few utility tools
+(and plenty of scratch space available on your disk).
+These tools are included as part of the rlztools suite;
+we refer you to the manual of
+rlztools.divsuffix(1)
+for examples on how to carry out the computation.
+.SS "Symbol\ width"
+By default, both utilities assume that the RLZ-compressed output or input is
+in the "32x2" binary format, which uses a constant eight bytes per RLZ phrase.
+Most real-world inputs will compress into a 30\(em60% smaller space
+if compressed with the "vbyte" binary format, which varies the number of bytes
+per phrase as needed.
+If very large dictionaries bigger than 4\~GiB are used, this is no longer
+sufficient, and either the "vbyte" or "64x2" binary formats must be used.
+The choice of RLZ binary format is specified with the
+\fB\-f\fR
+option.
+Take care to give
+\fBrlzunparse\fR
+the same
+\fB\-f\fR
+option as was used for compression; otherwise the program will probably crash,
+or at the very least your output will be garbage.
+.PP
+By default, these tools assume that the original uncompressed file
+(and the dictionary) are composed of 8-bit bytes.
+This is fine for all inputs, but in some situations the input (and dictionary)
+are in fact composed of wider units, like 32-bit (4-byte) fixed-width integers.
+Both tools support interpreting the file as a sequence of these wider symbols:
+the
+\fB\-w\fR
+option specifies the symbol width of both the dictionary and the input
+(\fBrlzparse\fR)
+or output
+(\fBrlzunparse\fR).
+This changes the interpretation of the
+\fB\-a\fR
+and
+\fB\-b\fR
+options, and the requirements of the suffix array.
+.PP
+For example, with
+"\fB\-w\fR \fB32\fR"
+set, the elements of the suffix array point to 32-bit symbols rather than
+individual bytes, and thus one can use 32-bit-wide suffix arrays with
+dictionaries as large as 16~GiB (2^32\-1 32-bit symbols).
+Again with
+"\fB\-w\fR \fB32\fR"
+set, giving
+\fBrlzunparse\fR
+the parameters
+"\fB\-a\fR \fB\-3000\fR \fB\-b\fR \fB\-3500\fR"
+will result in a 2004-byte file (2004 bytes = 501 32-bit/4-byte symbols),
+which starts at the 3000th symbol (i.e. the 12,000th byte)
+in the original, uncompressed input file.
+.SH "AUTHORS"
+Eve Kivivuori (\fBhttps://github.com/eax99/\fR)
