@@ -209,6 +209,17 @@ Almost-random-access decompression is done by _not_ copying the text to the outp
 For a more detailed description, I refer you to the source code here, or chapter 2 of [my thesis](http://urn.fi/URN:NBN:fi:hulib-202306273299), or the papers cited within, such as S. Kuruppu, S. J. Puglizi, J. Zobel: "[Relative Lempel-Ziv compression of genomes for large-scale storage and retrieval](https://people.eng.unimelb.edu.au/jzobel/fulltext/spire10.pdf)", in Proc. 17th SPIRE, pages 201–206, 2010 (which was, as far as I can tell, the first description of the algorithm).
 My thesis also includes some analysis of RLZ's performance (including deriving the O(_n_ + _p_ log _d_) time complexity), some benchmarking numbers with various kinds of inputs, and some discussion on how to sample a dictionary.
 
+## Tests
+
+Some test inputs and test scripts are included in the `test` directory.
+Test files for all four supported symbol widths are included.
+All the files are licensed with the same MPLv2 license as the rest of the code (although some of the simpler files probably don't qualify for copyright).
+The files' contents are either hand-written or generated gibberish.
+Input text, generated dictionaries, calculated suffix arrays, and expected compression output are all provided.
+
+The test scripts require the `cmp -s` tool for binary comparison of files, and the `head -c` and `tail -c` tools to create partial copies of files to test rlzunparse's random-position decompression.
+I have attempted to write the scripts shell-agnostically but have so far only tested them with bash on Linux, so they may fail on other systems.
+
 ## License
 
 All code is licensed under the [Mozilla Public License, version 2.0](https://www.mozilla.org/en-US/MPL/2.0/).
